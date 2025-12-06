@@ -4,27 +4,22 @@ import java.awt.*;
 /**
  * Lead Author(s):
  * @author Joseph Roberts
- * 
- * References:
- * Morelli, R., & Walde, R. (2016). Java, Java, Java: Object-Oriented Problem Solving.
- * Retrieved from https://open.umn.edu/opentextbooks/textbooks/java-java-java-object-oriented-problem-solving
- * 
- * Version/date: 11/21/2025
- * 
+ *
  * Responsibilities of class:
- * Represents the main application window for the disease spread simulation.
- * Sets up the layout, initializes SimulationPanel and ControlPanel, and displays the GUI.
+ * Main application window. Shows setup screen first, builds controller and
+ * main simulation UI after user configures settings.
  */
 
 // MainWindow IS-A JFrame
-// MainWindow has-a SimulationPanel
-// MainWindow has-a ControlPanel
+// MainWindow has-a Controller, SimulationPanel, and ControlPanel
 public class MainWindow extends JFrame
 {
+    private Controller controller;
+    private SimulationPanel simulationPanel;
+    private ControlPanel controlPanel;
 
     /**
-     * Constructs the main application window.
-     * Initializes the simulation panel, control panel, layout, and displays the GUI.
+     * Constructor: initializes the main window and displays the setup screen.
      */
     public MainWindow()
     {
@@ -34,19 +29,49 @@ public class MainWindow extends JFrame
         setLocationRelativeTo(null);
         setLayout(new BorderLayout());
 
-        SimulationPanel simulationPanel = new SimulationPanel(new Population(100));
-        ControlPanel controlPanel = new ControlPanel(simulationPanel);
-
-        add(simulationPanel, BorderLayout.CENTER);
-        add(controlPanel, BorderLayout.EAST);
+        showSetupScreen();
 
         setVisible(true);
     }
 
     /**
-     * Main method launches the application using the Swing event dispatch thread.
-     * 
-     * @param args command-line arguments (not used)
+     * Displays the initial setup screen where the user configures simulation parameters.
+     */
+    private void showSetupScreen()
+    {
+        SimulationSetupPanel setupPanel = new SimulationSetupPanel(config -> 
+        {
+            // 1️ Create controller and apply configuration
+            controller = new Controller();
+            controller.applyConfig(config);
+
+            // 2️ Create SimulationPanel with both population & disease
+            simulationPanel = new SimulationPanel(controller.getPopulation(), controller.getDisease());
+
+            // Enable interactive setup BEFORE starting simulation
+            simulationPanel.setInteractiveSetup(true);
+
+            // 3️ Create ControlPanel (start/reset buttons)
+            controlPanel = new ControlPanel(simulationPanel, controller);
+
+            // 4️ Replace setup screen with simulation UI
+            getContentPane().removeAll();
+            add(simulationPanel, BorderLayout.CENTER);
+            add(controlPanel, BorderLayout.EAST);
+            revalidate();
+            repaint();
+        });
+
+        getContentPane().removeAll();
+        add(setupPanel, BorderLayout.CENTER);
+        revalidate();
+        repaint();
+    }
+
+    /**
+     * Main entry point for the simulation application.
+     *
+     * @param args command-line arguments (unused)
      */
     public static void main(String[] args)
     {

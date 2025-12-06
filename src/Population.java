@@ -4,47 +4,38 @@ import java.util.List;
 /**
  * Lead Author(s):
  * @author Joseph Roberts
- * 
- * References:
- * Morelli, R., & Walde, R. (2016). Java, Java, Java: Object-Oriented Problem Solving.
- * Retrieved from https://open.umn.edu/opentextbooks/textbooks/java-java-java-object-oriented-problem-solving
- * 
- * Version/date: 11/21/2025
- * 
+ *
  * Responsibilities of class:
- * Represents the population of people in the simulation.
- * Manages the list of Person objects and handles daily infection spread and health updates.
+ * Manages a collection of Person objects, provides grid layout information,
+ * and handles updating health progression for all individuals.
  */
 
-// Population has-a people
+// Population has-a list of Person objects
 public class Population
 {
-
-    private List<Person> people = new ArrayList<>();
+    private final List<Person> people;
 
     /**
-     * Constructs a Population with the specified size.
-     * Initializes the list of Person objects and infects one person initially.
-     * 
-     * @param size the number of people in the population
+     * Constructor: creates a population of the given size
+     *
+     * @param size number of Person objects in the population
      */
     public Population(int size)
     {
+        people = new ArrayList<>(Math.max(0, size));
         for (int i = 0; i < size; i++)
         {
             people.add(new Person(i));
         }
-
-        // infect one person initially
-        if (!people.isEmpty())
-        {
-            people.get(0).infect();
-        }
     }
 
+    // -------------------------------
+    // Getters / Utility
+    // -------------------------------
+
     /**
-     * Returns the list of people in the population.
-     * 
+     * Retrieves the list of people in the population
+     *
      * @return list of Person objects
      */
     public List<Person> getPeople()
@@ -53,29 +44,47 @@ public class Population
     }
 
     /**
-     * Advances the simulation by one day.
-     * Each infected person attempts to infect 1-3 random others,
-     * then all people update their health status.
-     * 
-     * @param disease the Disease being simulated
+     * Returns number of columns for grid layout based on sqrt(N)
+     *
+     * @return number of columns
      */
-    public void step(Disease disease)
+    public int getColumnCount()
     {
-        // try to infect some random people
-        for (Person p : people)
-        {
-            if (p.getHealthStatus() == HealthStatus.INFECTED)
-            {
-                int contacts = 1 + (int)(Math.random() * 3);
-                for (int i = 0; i < contacts; i++)
-                {
-                    Person target = people.get((int)(Math.random() * people.size()));
-                    disease.tryInfect(target);
-                }
-            }
-        }
+        return (int) Math.ceil(Math.sqrt(people.size()));
+    }
 
-        // update everyone’s health (progress infection -> recovery)
+    /**
+     * Returns number of rows for grid layout based on column count
+     *
+     * @return number of rows
+     */
+    public int getRowCount()
+    {
+        int cols = getColumnCount();
+        return (int) Math.ceil((double) people.size() / cols);
+    }
+
+    /**
+     * Returns number of people in the population
+     *
+     * @return population size
+     */
+    public int size()
+    {
+        return people.size();
+    }
+
+    // -------------------------------
+    // Health Update Logic
+    // -------------------------------
+
+    /**
+     * Updates the health of all individuals in the population
+     *
+     * @param disease the disease affecting the population
+     */
+    public void updateHealthAll(Disease disease)
+    {
         for (Person p : people)
         {
             p.updateHealth(disease);

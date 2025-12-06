@@ -1,90 +1,166 @@
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.List;
 
 /**
  * Lead Author(s):
  * @author Joseph Roberts
- * 
- * References:
- * Morelli, R., & Walde, R. (2016). Java, Java, Java: Object-Oriented Problem Solving.
- * Retrieved from https://open.umn.edu/opentextbooks/textbooks/java-java-java-object-oriented-problem-solving
- * 
- * Version/date: 11/21/2025
- * 
+ *
  * Responsibilities of class:
- * Responsible for rendering the simulation visually.
- * Draws each Person as a colored circle based on their HealthStatus.
- * Updates dynamically as the simulation progresses.
+ * Displays the population grid, coloring each person according to their health status.
+ * Supports interactive setup by allowing pre-infection of individuals via mouse clicks.
  */
 
-// SimulationPanel IS-A JPanel
-// SimulationPanel has-a Population
+// SimulationPanel has-a Population and Disease
 public class SimulationPanel extends JPanel
 {
-
     private Population population;
+    private Disease disease;
+    private boolean interactiveSetup = false; // allow clicking to pre-infect
 
     /**
-     * Constructs a SimulationPanel associated with a given Population.
-     * Sets the background color and stores the Population reference.
-     * 
-     * @param population the Population to render
+     * Constructor: creates a SimulationPanel
+     *
+     * @param population the population to display
+     * @param disease the disease to simulate
      */
-    public SimulationPanel(Population population)
+    public SimulationPanel(Population population, Disease disease)
     {
         setBackground(Color.WHITE);
         this.population = population;
-    }
-    
-    /**
-     * Updates the Population displayed by this panel.
-     * 
-     * @param population the new Population to display
-     */
-    public void setPopulation(Population population)
-    {
-        this.population = population;
+        this.disease = disease;
+
+        addMouseListener(new MouseAdapter()
+        {
+            @Override
+            public void mouseClicked(MouseEvent e)
+            {
+                handleMouseClick(e);
+            }
+        });
     }
 
     /**
-     * Paints the simulation.
-     * Each Person is drawn as a colored circle according to their health status.
-     * 
-     * @param g the Graphics context for drawing
+     * Handles mouse click for interactive infection setup.
+     *
+     * @param e mouse event
+     */
+    private void handleMouseClick(MouseEvent e)
+    {
+        if (!interactiveSetup || population == null || disease == null) return;
+
+        int col = e.getX() / getCellWidth();
+        int row = e.getY() / getCellHeight();
+        int index = row * population.getColumnCount() + col;
+
+        List<Person> people = population.getPeople();
+        if (index >= 0 && index < people.size())
+        {
+            Person p = people.get(index);
+            if (p.getHealthStatus() == HealthStatus.SUSCEPTIBLE)
+            {
+                p.infect(disease);
+                repaint();
+            }
+        }
+    }
+
+    /**
+     * Update the population and disease references.
+     *
+     * @param population new population
+     * @param disease new disease
+     */
+    public void setPopulationAndDisease(Population population, Disease disease)
+    {
+        this.population = population;
+        this.disease = disease;
+        repaint();
+    }
+
+    /**
+     * Enable or disable interactive infection setup.
+     *
+     * @param interactive true to allow clicking to infect
+     */
+    public void setInteractiveSetup(boolean interactive)
+    {
+        this.interactiveSetup = interactive;
+    }
+
+    /**
+     * Paint the population grid.
+     *
+     * @param g graphics context
      */
     @Override
     protected void paintComponent(Graphics g)
     {
         super.paintComponent(g);
 
-        List<Person> people = population.getPeople();
-        int cols = 20;
-        int spacing = 25;
+        if (population == null) return;
 
-        for (int i = 0; i < people.size(); i++)
+        List<Person> people = population.getPeople();
+        int total = people.size();
+        if (total == 0) return;
+
+        int cols = population.getColumnCount();
+        int rows = population.getRowCount();
+        int cellW = getCellWidth();
+        int cellH = getCellHeight();
+
+        for (int i = 0; i < total; i++)
         {
             Person p = people.get(i);
-            int x = (i % cols) * spacing + 20;
-            int y = (i / cols) * spacing + 20;
+            int col = i % cols;
+            int row = i / cols;
+            int x = col * cellW;
+            int y = row * cellH;
 
-            switch (p.getHealthStatus())
-            {
-                case SUSCEPTIBLE:
-                    g.setColor(Color.GREEN);
-                    break;
-                case INFECTED:
-                    g.setColor(Color.RED);
-                    break;
-                case RECOVERED:
-                    g.setColor(Color.BLUE);
-                    break;
-                case DEAD:
-                    g.setColor(Color.GRAY);
-                    break;
-            }
-
-            g.fillOval(x, y, 15, 15);
+            g.setColor(getColorForHealthStatus(p.getHealthStatus()));
+            g.fillRect(x, y, cellW, cellH);
         }
+    }
+
+    /**
+     * Returns a color corresponding to a health status.
+     *
+     * @param status health status
+     * @return color to draw
+     */
+    private Color getColorForHealthStatus(HealthStatus status)
+    {
+        switch (status)
+        {
+            case SUSCEPTIBLE: return Color.GREEN;
+            case INFECTED: return Color.RED;
+            case RECOVERING: return Color.ORANGE;
+            case RECOVERED: return new Color(0, 100, 0); // DARK GREEN
+            case VACCINATED: return new Color(0, 150, 255); // LIGHT BLUE
+            case DEAD: return Color.DARK_GRAY;
+            default: return Color.BLACK;
+        }
+    }
+
+    /**
+     * Computes width of a single cell in the grid.
+     *
+     * @return cell width
+     */
+    private int getCellWidth()
+    {
+        return population == null ? 0 : getWidth() / population.getColumnCount();
+    }
+
+    /**
+     * Computes height of a single cell in the grid.
+     *
+     * @return cell height
+     */
+    private int getCellHeight()
+    {
+        return population == null ? 0 : getHeight() / population.getRowCount();
     }
 }

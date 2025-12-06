@@ -1,81 +1,152 @@
 /**
  * Lead Author(s):
  * @author Joseph Roberts
- * 
- * References:
- * Morelli, R., & Walde, R. (2016). Java, Java, Java: Object-Oriented Problem Solving.
- * Retrieved from https://open.umn.edu/opentextbooks/textbooks/java-java-java-object-oriented-problem-solving
- * 
- * Version/date: 11/21/2025
- * 
+ *
  * Responsibilities of class:
- * Represents an individual in the simulation.
- * Tracks health status, days infected, and provides methods to infect and update health over time.
+ * Represents an individual in the simulation. Tracks health status, infection
+ * timing, and vaccination state.
  */
 
-
-// Person has-a id 
-// Person has-a healthStatus
-// Person has-a daysInfected
+// Person IS-A individual in the simulation
+// Person has-a HealthStatus, infection timing, vaccination status
 public class Person
 {
-
     private int id;
     private HealthStatus healthStatus;
     private int daysInfected;
 
+    private boolean vaccinated;
+    private float vaccineEfficacy;
+
+    // Dynamic recovery timing
+    private int assignedRecoveryDays;
+    private int recoveryCountdown;
+
     /**
-     * Constructs a Person with a unique ID.
-     * Initializes healthStatus to SUSCEPTIBLE and daysInfected to 0.
-     * 
-     * @param id unique identifier for the Person
+     * Constructor: creates a new person with default SUSCEPTIBLE status
+     *
+     * @param id unique identifier for the person
      */
     public Person(int id)
     {
         this.id = id;
         this.healthStatus = HealthStatus.SUSCEPTIBLE;
         this.daysInfected = 0;
+        this.vaccinated = false;
+        this.vaccineEfficacy = 0f;
+        this.assignedRecoveryDays = 0;
+        this.recoveryCountdown = 0;
     }
 
-    /**
-     * Returns the current health status of the Person.
-     * 
-     * @return the HealthStatus of this Person
-     */
+    // -------------------------------
+    // Getters / Setters
+    // -------------------------------
+
+    public int getId()
+    {
+        return id;
+    }
+
     public HealthStatus getHealthStatus()
     {
         return healthStatus;
     }
 
+    public void setHealthStatus(HealthStatus status)
+    {
+        this.healthStatus = status;
+    }
+
+    public boolean isVaccinated()
+    {
+        return vaccinated;
+    }
+
+    public float getVaccineEfficacy()
+    {
+        return vaccineEfficacy;
+    }
+
+    // -------------------------------
+    // Infection & Health Logic
+    // -------------------------------
+
     /**
-     * Infects the Person if they are currently susceptible.
-     * Sets healthStatus to INFECTED and resets daysInfected.
+     * Infects the person if they are currently SUSCEPTIBLE.
+     * RECOVERED or VACCINATED people are immune.
+     *
+     * @param disease the disease instance to infect with
      */
-    public void infect()
+    public void infect(Disease disease)
     {
         if (healthStatus == HealthStatus.SUSCEPTIBLE)
         {
             healthStatus = HealthStatus.INFECTED;
             daysInfected = 0;
+            assignedRecoveryDays = disease.randomRecoveryDays(); // random recovery period
         }
     }
 
     /**
-     * Updates the health of the Person for one day.
-     * Increments daysInfected if infected and transitions to RECOVERED
-     * after incubation period plus 3 days.
-     * 
-     * @param disease the Disease being simulated
+     * Updates health status per day:
+     * INFECTED -> after assignedRecoveryDays -> RECOVERING
+     * RECOVERING -> after recoveryCountdown -> RECOVERED
+     *
+     * @param disease the disease for recovery timing
      */
     public void updateHealth(Disease disease)
     {
-        if (healthStatus == HealthStatus.INFECTED)
+        switch (healthStatus)
         {
-            daysInfected++;
-            if (daysInfected >= disease.getIncubationPeriod() + 3)
+            case INFECTED ->
             {
-                healthStatus = HealthStatus.RECOVERED;
+                daysInfected++;
+                if (daysInfected >= assignedRecoveryDays)
+                {
+                    healthStatus = HealthStatus.RECOVERING;
+                    recoveryCountdown = disease.randomContagiousDays(); // random contagious period
+                }
             }
+            case RECOVERING ->
+            {
+                recoveryCountdown--;
+                if (recoveryCountdown <= 0)
+                {
+                    healthStatus = HealthStatus.RECOVERED;
+                }
+            }
+            default -> {}
+        }
+    }
+
+    /**
+     * Checks if the person can spread disease.
+     *
+     * @return true if INFECTED or RECOVERING
+     */
+    public boolean isContagious()
+    {
+        return healthStatus == HealthStatus.INFECTED || healthStatus == HealthStatus.RECOVERING;
+    }
+
+    // -------------------------------
+    // Vaccination Logic
+    // -------------------------------
+
+    /**
+     * Applies vaccination to the person, marking as VACCINATED if SUSCEPTIBLE
+     *
+     * @param efficacy value from 0.0 to 1.0
+     */
+    public void vaccinate(float efficacy)
+    {
+        this.vaccinated = true;
+        this.vaccineEfficacy = Math.max(0f, Math.min(1f, efficacy));
+
+        // Optional: immediately mark as VACCINATED visually
+        if (healthStatus == HealthStatus.SUSCEPTIBLE)
+        {
+            healthStatus = HealthStatus.VACCINATED;
         }
     }
 }

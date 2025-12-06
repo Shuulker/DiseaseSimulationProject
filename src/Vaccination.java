@@ -1,55 +1,70 @@
 /**
  * Lead Author(s):
  * @author Joseph Roberts
- * 
- * References:
- * Morelli, R., & Walde, R. (2016). Java, Java, Java: Object-Oriented Problem Solving.
- * Retrieved from https://open.umn.edu/opentextbooks/textbooks/java-java-java-object-oriented-problem-solving
- * 
- * Version/date: 11/21/2025
- * 
+ *
  * Responsibilities of class:
- * Represents a vaccination in the simulation.
- * Can be applied to a Person and reduce disease transmission in the population.
+ * Represents a vaccination. Can vaccinate individuals (coverage) and
+ * compute adjusted infection chance per person.
  */
 
 // Vaccination has-a name
-// Vaccination has-a efficacy
-// Vaccination has-a coverageRate
+// Vaccination has-a efficacy (reduces infection probability)
+// Vaccination has-a coverageRate (percent of population vaccinated)
 public class Vaccination
 {
-
-    private String name;
-    private float efficacy;
-    private float coverageRate;
+    private final String name;
+    private final float efficacy;      // 0..1
+    private final float coverageRate;  // 0..1
 
     /**
-     * Constructs a Vaccination with the specified name.
-     * 
-     * @param name the name of the vaccination
+     * Constructor ensures efficacy and coverageRate are clamped to [0..1]
      */
-    public Vaccination(String name)
+    public Vaccination(String name, float efficacy, float coverageRate)
     {
         this.name = name;
+        this.efficacy = Math.max(0f, Math.min(1f, efficacy));
+        this.coverageRate = Math.max(0f, Math.min(1f, coverageRate));
     }
 
     /**
-     * Applies the vaccination to a Person.
-     * 
-     * @param p the Person to vaccinate
+     * Apply vaccination to a person based on coverage probability.
      */
     public void applyTo(Person p)
     {
-        // TODO
+        if (!p.isVaccinated() && Math.random() < coverageRate)
+        {
+            p.vaccinate(efficacy);
+        }
     }
 
     /**
-     * Reduces disease transmission for the specified Disease.
-     * 
-     * @param d the Disease to affect
+     * Returns the adjusted infection probability for a person given a base rate.
+     * Vaccinated people have their probability reduced by efficacy.
      */
-    public void reduceTransmission(Disease d)
+    public double adjustInfectionChance(Person p, double baseRate)
     {
-        // TODO
+        if (p.isVaccinated())
+        {
+            return baseRate * (1.0 - p.getVaccineEfficacy());
+        }
+        return baseRate;
+    }
+
+    // -------------------------------
+    // Getters
+    // -------------------------------
+    public String getName()
+    {
+        return name;
+    }
+
+    public float getEfficacy()
+    {
+        return efficacy;
+    }
+
+    public float getCoverageRate()
+    {
+        return coverageRate;
     }
 }

@@ -1,55 +1,64 @@
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Lead Author(s):
  * @author Joseph Roberts
- * 
- * References:
- * Morelli, R., & Walde, R. (2016). Java, Java, Java: Object-Oriented Problem Solving.
- * Retrieved from https://open.umn.edu/opentextbooks/textbooks/java-java-java-object-oriented-problem-solving
- * 
- * Version/date: 11/21/2025
- * 
+ *
  * Responsibilities of class:
- * Collects and stores daily statistics for the simulation, including numbers of infected,
- * recovered, and dead people. Provides methods to generate reports and export data to CSV.
+ * Collects and stores daily statistics for the simulation.
  */
 
-// Statistics has-a dailyInfected
-// Statistics has-a dailyRecovered
-// Statistics has-a dailyDeaths
+// Statistics has-a dailyInfected, dailyRecovered, dailyDeaths
 public class Statistics
 {
-
-    private List<Integer> dailyInfected = new ArrayList<>();
-    private List<Integer> dailyRecovered = new ArrayList<>();
-    private List<Integer> dailyDeaths = new ArrayList<>();
+    private final List<Integer> dailyInfected = new ArrayList<>();
+    private final List<Integer> dailyRecovered = new ArrayList<>();
+    private final List<Integer> dailyDeaths = new ArrayList<>();
 
     /**
-     * Records the current day's statistics based on the Population.
-     * 
-     * @param population the Population to collect statistics from
+     * Record today's counts from the population
+     *
+     * @param population the current population to evaluate
      */
     public void recordDay(Population population)
     {
-        // TODO: collect daily numbers from population
+        int infected = 0;
+        int recovered = 0;
+        int dead = 0;
+
+        for (Person p : population.getPeople())
+        {
+            switch (p.getHealthStatus())
+            {
+                case INFECTED -> infected++;
+                case RECOVERED -> recovered++;
+                case DEAD -> dead++;
+                default -> {}
+            }
+        }
+
+        dailyInfected.add(infected);
+        dailyRecovered.add(recovered);
+        dailyDeaths.add(dead);
     }
 
-    /**
-     * Generates a report of collected statistics.
-     */
-    public void generateReport()
+    // -------------------------------
+    // Getters
+    // -------------------------------
+
+    public List<Integer> getDailyInfected()
     {
-        // TODO: print stats
+        return dailyInfected;
     }
 
-    /**
-     * Exports collected statistics to a CSV file.
-     * 
-     * @param filename the path or name of the CSV file
-     */
-    public void exportToCSV(String filename)
+    public List<Integer> getDailyRecovered()
     {
-        // TODO: write CSV file
+        return dailyRecovered;
+    }
+
+    public List<Integer> getDailyDeaths()
+    {
+        return dailyDeaths;
     }
 }

@@ -1,82 +1,189 @@
+import java.util.List;
+
 /**
  * Lead Author(s):
  * @author Joseph Roberts
- * 
- * References:
- * Morelli, R., & Walde, R. (2016). Java, Java, Java: Object-Oriented Problem Solving.
- * Retrieved from https://open.umn.edu/opentextbooks/textbooks/java-java-java-object-oriented-problem-solving
- * 
- * Version/date: 11/21/2025
- * 
+ *
  * Responsibilities of class:
- * Acts as the central controller for the disease spread simulation.
- * Manages the simulation loop, steps through days, and coordinates Population, Disease, Vaccination, and Statistics.
+ * Orchestrates the simulation: infection spread, vaccination application,
+ * population health updates, and statistics collection.
  */
-
-// NOTE: Very soon make sure to have this class handle most of the functionality that ControlPanel does
-//       as that was the original intention but I wanted to create rough functionality as soon as possible.
 
 // Controller has-a Population
 // Controller has-a Disease
 // Controller has-a Vaccination
 // Controller has-a Statistics
+// Controller has-a SimulationConfig
 public class Controller
 {
-
     private Population population;
     private Disease disease;
     private Vaccination vaccination;
-    private Statistics stats;
+    private Statistics statistics;
+    private SimulationConfig config;  // stores last user-selected configuration
 
     private int currentDay;
-    private int maxDays;
+    private int maxDays = 50;
 
     /**
-     * Constructs a Controller with the specified maximum number of days for the simulation.
-     * 
-     * @param maxDays the total number of days the simulation will run
+     * Default constructor.
+     * Initializes statistics object. Population and disease are set via reset or applyConfig.
      */
-    public Controller(int maxDays)
+    public Controller()
     {
-        this.maxDays = maxDays;
+        statistics = new Statistics();
     }
 
     /**
-     * Initializes the simulation.
-     * Creates the Population, Disease, Vaccination, and Statistics objects.
+     * Resets the simulation using simple parameters.
+     * Seeds first infection and applies vaccination if enabled.
+     *
+     * @param populationSize number of people in population
+     * @param infectionRate probability of disease spread
+     * @param incubation incubation period for disease
+     * @param vaccEnabled whether vaccination is applied
+     * @param vaccEff effectiveness of vaccination
      */
-    public void initializeSimulation()
+    public void reset(int populationSize, float infectionRate, int incubation, boolean vaccEnabled, float vaccEff)
     {
-        // TODO: create population, disease, vaccination, stats
-    }
+        this.population = new Population(populationSize);
+        this.disease = new Disease("ConfiguredVirus", infectionRate, incubation);
+        this.statistics = new Statistics();
+        this.currentDay = 0;
 
-    /**
-     * Runs the simulation for the configured number of days.
-     * Calls step() for each day in the simulation.
-     */
-    public void run()
-    {
-        for (currentDay = 0; currentDay < maxDays; currentDay++)
+        // Seed first infection
+        if (!population.getPeople().isEmpty())
         {
-            step();
+            population.getPeople().get(0).infect(this.disease);
         }
+
+        // Apply vaccination if enabled
+        if (vaccEnabled)
+        {
+            this.vaccination = new Vaccination("Vax", vaccEff, 1.0f);
+            for (Person p : population.getPeople())
+            {
+                this.vaccination.applyTo(p);
+            }
+        }
+        else
+        {
+            this.vaccination = null;
+        }
+    }
+
+    // ---- Getters & Setters ----
+    public Population getPopulation()
+    {
+        return population;
+    }
+
+    public Disease getDisease()
+    {
+        return disease;
+    }
+
+    public Statistics getStatistics()
+    {
+        return statistics;
+    }
+
+    public int getCurrentDay()
+    {
+        return currentDay;
+    }
+
+    public int getMaxDays()
+    {
+        return maxDays;
+    }
+
+    public void setMaxDays(int maxDays)
+    {
+        this.maxDays = Math.max(1, maxDays);
+    }
+
+    public SimulationConfig getConfig()
+    {
+        return config;
     }
 
     /**
      * Advances the simulation by one day.
-     * Updates the population, disease spread, vaccination effects, and statistics.
+     *
+     * @return true if the simulation can continue, false if max days reached
      */
-    public void step()
+    public boolean step()
     {
-        // TODO: advance simulation one step
+        if (currentDay >= maxDays)
+        {
+            return false;
+        }
+
+        disease.spread(population);
+        population.updateHealthAll(disease);
+        statistics.recordDay(population);
+        currentDay++;
+
+        return true;
     }
 
     /**
-     * Generates a report of the simulation.
-     * Could include printing to console or exporting to CSV.
+     * Applies a detailed configuration to the simulation.
+     * Sets up population, disease parameters, statistics, and vaccination.
+     *
+     * @param config user-defined simulation configuration
      */
-    public void report()
+    public void applyConfig(SimulationConfig config)
     {
-        // TODO: output summary or export CSV
+        this.config = config;  // store user config
+        this.maxDays = config.maxDays;
+
+        this.population = new Population(config.populationSize);
+
+        this.disease = new Disease("ConfiguredVirus", config.infectionRate, config.incubationPeriod);
+        this.disease.setRecoveryDays(config.minRecoveryDays, config.maxRecoveryDays);
+        this.disease.setPostRecoveryContagiousDays(config.minContagiousDays, config.maxContagiousDays);
+
+        this.statistics = new Statistics();
+        this.currentDay = 0;
+
+        // Apply vaccination if enabled
+        if (config.vaccinationEnabled)
+        {
+            this.vaccination = new Vaccination("Vax", config.vaccinationEfficacy, 1.0f);
+            for (Person p : population.getPeople())
+            {
+                this.vaccination.applyTo(p);
+            }
+        }
+        else
+        {
+            this.vaccination = null;
+        }
+    }
+
+    /**
+     * Starts the simulation. Resets current day to 0.
+     */
+    public void start()
+    {
+        currentDay = 0;
+    }
+
+    /**
+     * Convenience method: resets the simulation and returns the population.
+     *
+     * @param populationSize number of people in population
+     * @param infectionRate probability of disease spread
+     * @param incubation incubation period for disease
+     * @param vaccEnabled whether vaccination is applied
+     * @param vaccEff effectiveness of vaccination
+     * @return the newly created population
+     */
+    public Population resetAndGetPopulation(int populationSize, float infectionRate, int incubation, boolean vaccEnabled, float vaccEff)
+    {
+        reset(populationSize, infectionRate, incubation, vaccEnabled, vaccEff);
+        return population;
     }
 }

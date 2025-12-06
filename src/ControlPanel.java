@@ -5,52 +5,54 @@ import java.awt.event.ActionEvent;
 /**
  * Lead Author(s):
  * @author Joseph Roberts
- * 
- * References:
- * Morelli, R., & Walde, R. (2016). Java, Java, Java: Object-Oriented Problem Solving.
- * Retrieved from https://open.umn.edu/opentextbooks/textbooks/java-java-java-object-oriented-problem-solving
- * 
- * Version/date: 11/21/2025
- * 
+ *
  * Responsibilities of class:
- * Provides the user interface controls for the simulation, including buttons to start
- * and reset the simulation, and a label to show the current day.
- * Interacts with SimulationPanel to update the display and manages the simulation timer.
+ * Manages simulation controls (start/reset), shows current day, and displays statistics
+ * for the population (susceptible, infected, recovering, recovered, dead).
  */
 
 // ControlPanel IS-A JPanel
+// ControlPanel has-a Controller
 // ControlPanel has-a SimulationPanel
-// ControlPanel has-a Population
-// ControlPanel has-a Disease
 public class ControlPanel extends JPanel
 {
+    // ---- UI Components ----
+    private final JButton startButton;
+    private final JButton resetButton;
+    private final JLabel dayLabel;
+    private final JLabel susceptibleLabel;
+    private final JLabel infectedLabel;
+    private final JLabel recoveringLabel;
+    private final JLabel recoveredLabel;
+    private final JLabel deadLabel;
 
-    private JButton startButton, resetButton;
-    private JLabel dayLabel;
-
-    private SimulationPanel simulationPanel;
-    private Population population;
-    private Disease disease;
-
+    // ---- References ----
+    private final SimulationPanel simulationPanel;
+    private final Controller controller;
     private Timer timer;
-    private int currentDay = 0;
-    private final int maxDays = 50;
 
     /**
-     * Constructs a ControlPanel associated with the given SimulationPanel.
-     * Initializes UI components, simulation objects, and event handlers.
-     * 
-     * @param simulationPanel the panel responsible for rendering the simulation
+     * Constructor for ControlPanel
+     * Initializes all buttons, labels, layout, and links to simulation panel and controller.
+     *
+     * @param simulationPanel the panel displaying the simulation
+     * @param controller the simulation controller
      */
-    public ControlPanel(SimulationPanel simulationPanel)
+    public ControlPanel(SimulationPanel simulationPanel, Controller controller)
     {
         this.simulationPanel = simulationPanel;
+        this.controller = controller;
 
-        setLayout(new GridLayout(5, 1, 5, 5));
+        setLayout(new GridLayout(9, 1, 5, 5));
 
         startButton = new JButton("Start Simulation");
         resetButton = new JButton("Reset");
-        dayLabel = new JLabel("Day: 0 / " + maxDays);
+        dayLabel = new JLabel("Day: 0 / " + controller.getMaxDays(), SwingConstants.CENTER);
+        susceptibleLabel = new JLabel("Healthy: 0", SwingConstants.CENTER);
+        infectedLabel = new JLabel("Infected: 0", SwingConstants.CENTER);
+        recoveringLabel = new JLabel("Recovering: 0", SwingConstants.CENTER);
+        recoveredLabel = new JLabel("Recovered: 0", SwingConstants.CENTER);
+        deadLabel = new JLabel("Dead: 0", SwingConstants.CENTER);
 
         startButton.addActionListener(this::startSimulation);
         resetButton.addActionListener(this::resetSimulation);
@@ -58,38 +60,46 @@ public class ControlPanel extends JPanel
         add(startButton);
         add(resetButton);
         add(dayLabel);
+        add(susceptibleLabel);
+        add(infectedLabel);
+        add(recoveringLabel);
+        add(recoveredLabel);
+        add(deadLabel);
 
-        // initialize population & disease
-        population = new Population(300); // 300 people
-        disease = new Disease("TestVirus", 0.2f, 2); // 20% infection rate, 2-day incubation
-        simulationPanel.setPopulation(population);
+        updateStats(); // show initial statistics
+
+        if (controller.getPopulation() != null)
+        {
+            simulationPanel.setPopulationAndDisease(controller.getPopulation(), controller.getDisease());
+        }
     }
 
     /**
-     * Starts the simulation timer and updates the population daily.
-     * Prevents multiple timers from running simultaneously.
-     * Updates the SimulationPanel and day label on each step.
-     * 
-     * @param e the ActionEvent triggered by pressing the start button
+     * Starts the simulation when the start button is pressed.
+     * Disables the button during simulation and updates the UI on each step.
+     *
+     * @param e the ActionEvent triggered by button click
      */
     private void startSimulation(ActionEvent e)
     {
         if (timer != null && timer.isRunning())
+        {
             return;
+        }
 
         startButton.setEnabled(false);
-        currentDay = 0;
+        controller.start();
 
         timer = new Timer(300, evt ->
         {
-            if (currentDay < maxDays)
-            {
-                population.step(disease);
-                simulationPanel.repaint();
-                currentDay++;
-                dayLabel.setText("Day: " + currentDay + " / " + maxDays);
-            }
-            else
+            boolean cont = controller.step();
+            simulationPanel.setPopulationAndDisease(controller.getPopulation(), controller.getDisease());
+            simulationPanel.repaint();
+
+            dayLabel.setText("Day: " + controller.getCurrentDay() + " / " + controller.getMaxDays());
+            updateStats();
+
+            if (!cont)
             {
                 timer.stop();
                 startButton.setEnabled(true);
@@ -100,10 +110,10 @@ public class ControlPanel extends JPanel
     }
 
     /**
-     * Resets the simulation to its initial state.
-     * Stops any running timer, re-initializes the population, and updates the display.
-     * 
-     * @param e the ActionEvent triggered by pressing the reset button
+     * Resets the simulation to the initial state.
+     * Re-applies configuration, re-enables interactive setup, and updates statistics.
+     *
+     * @param e the ActionEvent triggered by button click
      */
     private void resetSimulation(ActionEvent e)
     {
@@ -112,11 +122,54 @@ public class ControlPanel extends JPanel
             timer.stop();
         }
 
-        population = new Population(300);
-        simulationPanel.setPopulation(population);
+        SimulationConfig config = controller.getConfig();
+        if (config != null)
+        {
+            controller.applyConfig(config);  // create new population & disease
+        }
+
+        simulationPanel.setPopulationAndDisease(controller.getPopulation(), controller.getDisease());
+        simulationPanel.setInteractiveSetup(true); // re-enable pre-infection clicking
         simulationPanel.repaint();
-        currentDay = 0;
-        dayLabel.setText("Day: 0 / " + maxDays);
+
+        dayLabel.setText("Day: " + controller.getCurrentDay() + " / " + controller.getMaxDays());
+        updateStats();
         startButton.setEnabled(true);
+    }
+
+    /**
+     * Updates the statistics labels based on the current population.
+     */
+    private void updateStats()
+    {
+        Population pop = controller.getPopulation();
+        if (pop == null)
+        {
+            return;
+        }
+
+        int susceptible = 0;
+        int infected = 0;
+        int recovering = 0;
+        int recovered = 0;
+        int dead = 0;
+
+        for (Person p : pop.getPeople())
+        {
+            switch (p.getHealthStatus())
+            {
+                case SUSCEPTIBLE -> susceptible++;
+                case INFECTED -> infected++;
+                case RECOVERING -> recovering++;
+                case RECOVERED -> recovered++;
+                case DEAD -> dead++;
+            }
+        }
+
+        susceptibleLabel.setText("Healthy: " + susceptible);
+        infectedLabel.setText("Infected: " + infected);
+        recoveringLabel.setText("Recovering: " + recovering);
+        recoveredLabel.setText("Recovered: " + recovered);
+        deadLabel.setText("Dead: " + dead);
     }
 }

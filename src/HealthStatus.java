@@ -18,6 +18,8 @@ public enum HealthStatus
 {
     SUSCEPTIBLE, // person is healthy but can be infected
     INFECTED,    // person is currently infected
-    RECOVERED,   // person has recovered and is immune
+    RECOVERING,  // person who is recovered but still contagious
+    RECOVERED,   // person has recovered and not contagious
+    VACCINATED,   // person who is vaccinated
     DEAD         // person has died from infection
 }
