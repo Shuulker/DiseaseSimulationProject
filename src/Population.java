@@ -4,23 +4,49 @@ import java.util.List;
 /**
  * Lead Author(s):
  * @author Joseph Roberts
- *
+ * 
+ * References:
+ * Morelli, R., & Walde, R. (2016). Java, Java, Java: Object-Oriented Problem Solving.
+ * Retrieved from https://open.umn.edu/opentextbooks/textbooks/java-java-java-object-oriented-problem-solving
+ * 
+ * Version/date: 11/21/2025
+ * 
  * Responsibilities of class:
- * Manages a collection of Person objects, provides grid layout information,
- * and handles updating health progression for all individuals.
+ * Represents a collection of Person objects in the simulation.
+ * Manages population size and provides layout information for visualization.
  */
 
-// Population has-a list of Person objects
+// Population IS-A collection of Person objects
+// Population HAS-A list of Person and size
 public class Population
 {
-    private final List<Person> people;
+    private List<Person> people;     // list of persons in the simulation
+    private int size;                 // total number of people
 
     /**
-     * Constructor: creates a population of the given size
-     *
-     * @param size number of Person objects in the population
+     * Constructs a default Population of 10,000 people
+     */
+    public Population()
+    {
+        this(10000); // default value set here
+    }
+
+    /**
+     * Constructs a Population of a specified size
+     * Initializes all Person objects
+     * 
+     * @param size the number of people in the population
      */
     public Population(int size)
+    {
+        this.size = Math.max(0, size);
+        initializePeople();
+    }
+
+    /**
+     * Initializes the list of Person objects based on the current size
+     */
+    private void initializePeople()
     {
         people = new ArrayList<>(Math.max(0, size));
         for (int i = 0; i < size; i++)
@@ -29,14 +55,10 @@ public class Population
         }
     }
 
-    // -------------------------------
-    // Getters / Utility
-    // -------------------------------
-
     /**
-     * Retrieves the list of people in the population
-     *
-     * @return list of Person objects
+     * Retrieves the list of Person objects
+     * 
+     * @return list of persons in the population
      */
     public List<Person> getPeople()
     {
@@ -44,8 +66,19 @@ public class Population
     }
 
     /**
-     * Returns number of columns for grid layout based on sqrt(N)
-     *
+     * Returns the number of people in the population
+     * 
+     * @return current population size
+     */
+    public int size()
+    {
+        return people.size();
+    }
+
+    /**
+     * Calculates the number of columns for grid layout
+     * Used for visualizing population in a square-ish grid
+     * 
      * @return number of columns
      */
     public int getColumnCount()
@@ -54,8 +87,9 @@ public class Population
     }
 
     /**
-     * Returns number of rows for grid layout based on column count
-     *
+     * Calculates the number of rows for grid layout
+     * Used for visualizing population in a square-ish grid
+     * 
      * @return number of rows
      */
     public int getRowCount()
@@ -65,29 +99,13 @@ public class Population
     }
 
     /**
-     * Returns number of people in the population
-     *
-     * @return population size
+     * Sets a new population size and re-initializes all Person objects
+     * 
+     * @param newSize new size of the population
      */
-    public int size()
+    public void setSize(int newSize)
     {
-        return people.size();
-    }
-
-    // -------------------------------
-    // Health Update Logic
-    // -------------------------------
-
-    /**
-     * Updates the health of all individuals in the population
-     *
-     * @param disease the disease affecting the population
-     */
-    public void updateHealthAll(Disease disease)
-    {
-        for (Person p : people)
-        {
-            p.updateHealth(disease);
-        }
+        this.size = Math.max(0, newSize);
+        initializePeople();
     }
 }

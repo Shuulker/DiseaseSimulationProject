@@ -1,152 +1,161 @@
 /**
  * Lead Author(s):
  * @author Joseph Roberts
- *
+ * 
+ * References:
+ * Morelli, R., & Walde, R. (2016). Java, Java, Java: Object-Oriented Problem Solving.
+ * Retrieved from https://open.umn.edu/opentextbooks/textbooks/java-java-java-object-oriented-problem-solving
+ * 
+ * Version/date: 11/21/2025
+ * 
  * Responsibilities of class:
- * Represents an individual in the simulation. Tracks health status, infection
- * timing, and vaccination state.
+ * Represents a person in the simulation.
+ * Tracks health state, vaccination status, and disease progression.
  */
 
 // Person IS-A individual in the simulation
-// Person has-a HealthStatus, infection timing, vaccination status
+// Person HAS-A HealthStatus, vaccinated flag, infection and contagious counters
 public class Person
 {
-    private int id;
-    private HealthStatus healthStatus;
-    private int daysInfected;
+    private final int id;                     // unique identifier
+    private HealthStatus status;              // current health state
+    private boolean vaccinated;               // whether person is vaccinated
 
-    private boolean vaccinated;
-    private float vaccineEfficacy;
-
-    // Dynamic recovery timing
-    private int assignedRecoveryDays;
-    private int recoveryCountdown;
+    private int daysInfected;                 // counter of days infected
+    private int daysContagious;               // counter of days contagious
+    private int recoveryDuration;             // total days infected
+    private int contagiousDuration;           // total days contagious
 
     /**
-     * Constructor: creates a new person with default SUSCEPTIBLE status
-     *
+     * Constructs a Person with a unique ID
+     * Initializes status to SUSCEPTIBLE and vaccination to false
+     * 
      * @param id unique identifier for the person
      */
     public Person(int id)
     {
         this.id = id;
-        this.healthStatus = HealthStatus.SUSCEPTIBLE;
-        this.daysInfected = 0;
+        this.status = HealthStatus.SUSCEPTIBLE;
         this.vaccinated = false;
-        this.vaccineEfficacy = 0f;
-        this.assignedRecoveryDays = 0;
-        this.recoveryCountdown = 0;
+        this.daysInfected = 0;
+        this.daysContagious = 0;
+        this.recoveryDuration = 0;
+        this.contagiousDuration = 0;
     }
 
-    // -------------------------------
-    // Getters / Setters
-    // -------------------------------
-
-    public int getId()
-    {
-        return id;
-    }
-
+    /**
+     * Returns the current health status
+     * 
+     * @return current HealthStatus
+     */
     public HealthStatus getHealthStatus()
     {
-        return healthStatus;
+        return status;
     }
 
-    public void setHealthStatus(HealthStatus status)
-    {
-        this.healthStatus = status;
-    }
-
+    /**
+     * Checks if the person has been vaccinated
+     * 
+     * @return true if vaccinated, false otherwise
+     */
     public boolean isVaccinated()
     {
         return vaccinated;
     }
 
-    public float getVaccineEfficacy()
+    /**
+     * Vaccinates the person
+     * Updates status to VACCINATED if previously SUSCEPTIBLE
+     */
+    public void vaccinate()
     {
-        return vaccineEfficacy;
+        vaccinated = true;
+        if (status == HealthStatus.SUSCEPTIBLE)
+        {
+            status = HealthStatus.VACCINATED;
+        }
     }
 
-    // -------------------------------
-    // Infection & Health Logic
-    // -------------------------------
+    /**
+     * Checks if the person is currently infected
+     * 
+     * @return true if INFECTED or CONTAGIOUS
+     */
+    public boolean isInfected()
+    {
+        return status == HealthStatus.INFECTED || status == HealthStatus.CONTAGIOUS;
+    }
 
     /**
-     * Infects the person if they are currently SUSCEPTIBLE.
-     * RECOVERED or VACCINATED people are immune.
-     *
-     * @param disease the disease instance to infect with
+     * Sets the person's status to DEAD
+     */
+    public void setDead()
+    {
+        status = HealthStatus.DEAD;
+    }
+
+    /**
+     * Infects a susceptible person with the given disease
+     * Initializes recovery and contagious durations and resets counters
+     * 
+     * @param disease Disease instance to infect the person
      */
     public void infect(Disease disease)
     {
-        if (healthStatus == HealthStatus.SUSCEPTIBLE)
+        if (status == HealthStatus.SUSCEPTIBLE)
         {
-            healthStatus = HealthStatus.INFECTED;
+            status = HealthStatus.INFECTED;
+            recoveryDuration = disease.randomRecoveryDays();
+            contagiousDuration = disease.randomContagiousDays();
             daysInfected = 0;
-            assignedRecoveryDays = disease.randomRecoveryDays(); // random recovery period
+            daysContagious = 0;
         }
     }
 
     /**
-     * Updates health status per day:
-     * INFECTED -> after assignedRecoveryDays -> RECOVERING
-     * RECOVERING -> after recoveryCountdown -> RECOVERED
-     *
-     * @param disease the disease for recovery timing
-     */
-    public void updateHealth(Disease disease)
-    {
-        switch (healthStatus)
-        {
-            case INFECTED ->
-            {
-                daysInfected++;
-                if (daysInfected >= assignedRecoveryDays)
-                {
-                    healthStatus = HealthStatus.RECOVERING;
-                    recoveryCountdown = disease.randomContagiousDays(); // random contagious period
-                }
-            }
-            case RECOVERING ->
-            {
-                recoveryCountdown--;
-                if (recoveryCountdown <= 0)
-                {
-                    healthStatus = HealthStatus.RECOVERED;
-                }
-            }
-            default -> {}
-        }
-    }
-
-    /**
-     * Checks if the person can spread disease.
-     *
-     * @return true if INFECTED or RECOVERING
+     * Checks if the person is currently contagious
+     * 
+     * @return true if status is CONTAGIOUS or INFECTED with at least 1 day of infection
      */
     public boolean isContagious()
     {
-        return healthStatus == HealthStatus.INFECTED || healthStatus == HealthStatus.RECOVERING;
+        return status == HealthStatus.INFECTED && daysInfected >= 1
+               || status == HealthStatus.CONTAGIOUS;
     }
 
-    // -------------------------------
-    // Vaccination Logic
-    // -------------------------------
-
     /**
-     * Applies vaccination to the person, marking as VACCINATED if SUSCEPTIBLE
-     *
-     * @param efficacy value from 0.0 to 1.0
+     * Progresses the person's infection by one day
+     * Updates status from INFECTED → CONTAGIOUS → RECOVERED as appropriate
+     * 
+     * @param disease Disease instance being tracked (used for progression rules)
      */
-    public void vaccinate(float efficacy)
+    public void progressDay(Disease disease)
     {
-        this.vaccinated = true;
-        this.vaccineEfficacy = Math.max(0f, Math.min(1f, efficacy));
-
-        // Optional: immediately mark as VACCINATED visually
-        if (healthStatus == HealthStatus.SUSCEPTIBLE)
+        switch (status)
         {
-            healthStatus = HealthStatus.VACCINATED;
+            case INFECTED:
+                daysInfected++;
+
+                // Check if infection duration is complete → move to CONTAGIOUS
+                if (daysInfected >= recoveryDuration)
+                {
+                    status = HealthStatus.CONTAGIOUS;
+                    daysContagious = 0; // reset contagious counter
+                }
+                break;
+
+            case CONTAGIOUS:
+                daysContagious++;
+
+                // Check if contagious duration is complete → move to RECOVERED
+                if (daysContagious >= contagiousDuration)
+                {
+                    status = HealthStatus.RECOVERED;
+                }
+                break;
+
+            default:
+                break; // SUSCEPTIBLE, RECOVERED, VACCINATED, DEAD do nothing
         }
     }
 }

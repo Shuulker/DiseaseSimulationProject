@@ -5,171 +5,219 @@ import java.awt.event.ActionEvent;
 /**
  * Lead Author(s):
  * @author Joseph Roberts
- *
+ * 
+ * References:
+ * Morelli, R., & Walde, R. (2016). Java, Java, Java: Object-Oriented Problem Solving.
+ * Retrieved from https://open.umn.edu/opentextbooks/textbooks/java-java-java-object-oriented-problem-solving
+ * 
+ * Version/date: 11/21/2025
+ * 
  * Responsibilities of class:
- * Manages simulation controls (start/reset), shows current day, and displays statistics
- * for the population (susceptible, infected, recovering, recovered, dead).
+ * Provides a control panel for the simulation.
+ * Allows starting, pausing, resetting, and returning to setup.
+ * Displays current day and statistics for all health states.
  */
 
-// ControlPanel IS-A JPanel
-// ControlPanel has-a Controller
-// ControlPanel has-a SimulationPanel
+// ControlPanel HAS-A SimulationPanel, Controller, Statistics
+// ControlPanel IS-A JPanel (UI component)
 public class ControlPanel extends JPanel
 {
-    // ---- UI Components ----
-    private final JButton startButton;
-    private final JButton resetButton;
-    private final JLabel dayLabel;
-    private final JLabel susceptibleLabel;
-    private final JLabel infectedLabel;
-    private final JLabel recoveringLabel;
-    private final JLabel recoveredLabel;
-    private final JLabel deadLabel;
+    public interface ControlPanelListener
+    {
+        /**
+         * Callback for returning to the setup panel
+         * 
+         * @param config current simulation configuration
+         */
+        void onBackToSetup(SimulationConfig config);
+    }
 
-    // ---- References ----
+    private final JButton startButton;          // start simulation button
+    private final JButton resetButton;          // reset simulation button
+    private final JButton pauseButton;          // pause/resume button
+    private final JButton backButton;           // return to setup button
+    private final JLabel dayLabel;              // current day label
+    private final JLabel susceptibleLabel;      // susceptible count label
+    private final JLabel infectedLabel;         // infected count label
+    private final JLabel recoveringLabel;       // recovering count label
+    private final JLabel safeLabel;             // safe count label
+    private final JLabel deadLabel;             // dead count label
+
     private final SimulationPanel simulationPanel;
     private final Controller controller;
-    private Timer timer;
+    private final Statistics statistics;
+    private final ControlPanelListener listener;
+
+    private Timer timer;                        // timer for automatic simulation stepping
+    private boolean paused;                     // simulation paused flag
 
     /**
      * Constructor for ControlPanel
-     * Initializes all buttons, labels, layout, and links to simulation panel and controller.
-     *
-     * @param simulationPanel the panel displaying the simulation
-     * @param controller the simulation controller
+     * Sets up all UI components and button actions
+     * 
+     * @param simulationPanel panel displaying the simulation grid
+     * @param controller controller for simulation logic
+     * @param listener callback listener for back-to-setup action
      */
-    public ControlPanel(SimulationPanel simulationPanel, Controller controller)
+    public ControlPanel(SimulationPanel simulationPanel, Controller controller, ControlPanelListener listener)
     {
         this.simulationPanel = simulationPanel;
         this.controller = controller;
+        this.statistics = new Statistics();     // initialize stats
+        this.listener = listener;
 
-        setLayout(new GridLayout(9, 1, 5, 5));
+        setLayout(new GridLayout(10, 1, 5, 5));
 
         startButton = new JButton("Start Simulation");
+        pauseButton = new JButton("Resume");   // initially paused
         resetButton = new JButton("Reset");
+        backButton = new JButton("Back to Setup");
+
         dayLabel = new JLabel("Day: 0 / " + controller.getMaxDays(), SwingConstants.CENTER);
-        susceptibleLabel = new JLabel("Healthy: 0", SwingConstants.CENTER);
+        susceptibleLabel = new JLabel("Susceptible: 0", SwingConstants.CENTER);
         infectedLabel = new JLabel("Infected: 0", SwingConstants.CENTER);
         recoveringLabel = new JLabel("Recovering: 0", SwingConstants.CENTER);
-        recoveredLabel = new JLabel("Recovered: 0", SwingConstants.CENTER);
+        safeLabel = new JLabel("Safe: 0", SwingConstants.CENTER);
         deadLabel = new JLabel("Dead: 0", SwingConstants.CENTER);
 
         startButton.addActionListener(this::startSimulation);
         resetButton.addActionListener(this::resetSimulation);
+        pauseButton.addActionListener(this::togglePause);
+        backButton.addActionListener(this::backToSetup);
 
         add(startButton);
+        add(pauseButton);
         add(resetButton);
         add(dayLabel);
         add(susceptibleLabel);
         add(infectedLabel);
         add(recoveringLabel);
-        add(recoveredLabel);
+        add(safeLabel);
         add(deadLabel);
+        add(backButton);
 
-        updateStats(); // show initial statistics
-
-        if (controller.getPopulation() != null)
-        {
-            simulationPanel.setPopulationAndDisease(controller.getPopulation(), controller.getDisease());
-        }
+        paused = true; // simulation starts paused
+        updateStats();
     }
 
     /**
-     * Starts the simulation when the start button is pressed.
-     * Disables the button during simulation and updates the UI on each step.
-     *
-     * @param e the ActionEvent triggered by button click
+     * Starts the simulation timer and begins stepping through days
+     * 
+     * @param e ActionEvent from start button
      */
     private void startSimulation(ActionEvent e)
     {
-        if (timer != null && timer.isRunning())
+        if (timer == null)
         {
-            return;
+            controller.start();
+            statistics.reset(); // clear previous stats
+
+            timer = new Timer(300, evt ->
+            {
+                if (!paused)
+                {
+                    boolean cont = controller.step(); // perform one simulation step
+                    simulationPanel.setPopulationAndDisease(controller.getPopulation(), controller.getDisease());
+                    simulationPanel.repaint();
+
+                    statistics.recordDay(controller.getPopulation()); // update stats
+                    dayLabel.setText("Day: " + controller.getCurrentDay() + " / " + controller.getMaxDays());
+                    updateStats();
+
+                    if (!cont)
+                    {
+                        timer.stop();
+                        startButton.setEnabled(true);
+                        paused = true;
+                        pauseButton.setText("Resume");
+                    }
+                }
+            });
+
+            timer.start();
         }
 
+        paused = false;
+        pauseButton.setText("Pause");
         startButton.setEnabled(false);
-        controller.start();
-
-        timer = new Timer(300, evt ->
-        {
-            boolean cont = controller.step();
-            simulationPanel.setPopulationAndDisease(controller.getPopulation(), controller.getDisease());
-            simulationPanel.repaint();
-
-            dayLabel.setText("Day: " + controller.getCurrentDay() + " / " + controller.getMaxDays());
-            updateStats();
-
-            if (!cont)
-            {
-                timer.stop();
-                startButton.setEnabled(true);
-            }
-        });
-
-        timer.start();
     }
 
     /**
-     * Resets the simulation to the initial state.
-     * Re-applies configuration, re-enables interactive setup, and updates statistics.
-     *
-     * @param e the ActionEvent triggered by button click
+     * Toggles the pause state of the simulation
+     * 
+     * @param e ActionEvent from pause button
+     */
+    private void togglePause(ActionEvent e)
+    {
+        paused = !paused;
+        pauseButton.setText(paused ? "Resume" : "Pause");
+    }
+
+    /**
+     * Resets the simulation to the initial configuration
+     * 
+     * @param e ActionEvent from reset button
      */
     private void resetSimulation(ActionEvent e)
     {
-        if (timer != null && timer.isRunning())
+        if (timer != null)
         {
             timer.stop();
+            timer = null;
         }
 
         SimulationConfig config = controller.getConfig();
         if (config != null)
         {
-            controller.applyConfig(config);  // create new population & disease
+            controller.applyConfig(config);
         }
 
+        statistics.reset(); // clear stats
+
         simulationPanel.setPopulationAndDisease(controller.getPopulation(), controller.getDisease());
-        simulationPanel.setInteractiveSetup(true); // re-enable pre-infection clicking
+        simulationPanel.setInteractiveSetup(true);
         simulationPanel.repaint();
 
         dayLabel.setText("Day: " + controller.getCurrentDay() + " / " + controller.getMaxDays());
         updateStats();
+
         startButton.setEnabled(true);
+        paused = true;
+        pauseButton.setText("Resume"); // always show resume after reset
     }
 
     /**
-     * Updates the statistics labels based on the current population.
+     * Returns to the setup panel
+     * 
+     * @param e ActionEvent from back button
+     */
+    private void backToSetup(ActionEvent e)
+    {
+        if (timer != null)
+        {
+            timer.stop();
+            timer = null;
+        }
+
+        paused = true;
+        pauseButton.setText("Resume");
+        startButton.setEnabled(true);
+
+        if (listener != null)
+        {
+            listener.onBackToSetup(controller.getConfig());
+        }
+    }
+
+    /**
+     * Updates the statistics labels to display current values
      */
     private void updateStats()
     {
-        Population pop = controller.getPopulation();
-        if (pop == null)
-        {
-            return;
-        }
-
-        int susceptible = 0;
-        int infected = 0;
-        int recovering = 0;
-        int recovered = 0;
-        int dead = 0;
-
-        for (Person p : pop.getPeople())
-        {
-            switch (p.getHealthStatus())
-            {
-                case SUSCEPTIBLE -> susceptible++;
-                case INFECTED -> infected++;
-                case RECOVERING -> recovering++;
-                case RECOVERED -> recovered++;
-                case DEAD -> dead++;
-            }
-        }
-
-        susceptibleLabel.setText("Healthy: " + susceptible);
-        infectedLabel.setText("Infected: " + infected);
-        recoveringLabel.setText("Recovering: " + recovering);
-        recoveredLabel.setText("Recovered: " + recovered);
-        deadLabel.setText("Dead: " + dead);
+        susceptibleLabel.setText("Susceptible: " + statistics.getLatestSusceptible());
+        infectedLabel.setText("Infected: " + statistics.getLatestInfected());
+        recoveringLabel.setText("Recovering: " + statistics.getLatestRecovering());
+        safeLabel.setText("Safe: " + statistics.getLatestSafe());
+        deadLabel.setText("Dead: " + statistics.getLatestDeaths());
     }
 }

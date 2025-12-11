@@ -1,56 +1,70 @@
 /**
  * Lead Author(s):
  * @author Joseph Roberts
- *
+ * 
+ * References:
+ * Morelli, R., & Walde, R. (2016). Java, Java, Java: Object-Oriented Problem Solving.
+ * Retrieved from https://open.umn.edu/opentextbooks/textbooks/java-java-java-object-oriented-problem-solving
+ * 
+ * Version/date: 11/21/2025
+ * 
  * Responsibilities of class:
- * Encapsulates all configuration parameters for the simulation.
+ * Represents the configuration of a simulation, including Population, Disease, and Vaccination.
+ * Stores maxDays and whether vaccination is enabled.
  */
 
-// SimulationConfig is a simple data holder for simulation settings
+// SimulationConfig IS-A configuration holder for the simulation
+// SimulationConfig HAS-A Population, Disease, Vaccination, maxDays, vaccinationEnabled
 public class SimulationConfig
 {
-    // -------------------------------
-    // Public final fields
-    // -------------------------------
-    public final int populationSize;
-    public final float infectionRate;
-    public final int incubationPeriod;
-    public final boolean vaccinationEnabled;
-    public final float vaccinationEfficacy;
-    public final int maxDays;
-    public final int minRecoveryDays;
-    public final int maxRecoveryDays;
-    public final int minContagiousDays;
-    public final int maxContagiousDays;
+    private Population population;       // population for the simulation
+    private Disease disease;             // disease for the simulation
+    private Vaccination vaccination;     // vaccination configuration
+
+    public int maxDays;                  // maximum number of simulation days
+    public boolean vaccinationEnabled;   // whether vaccination is enabled
 
     /**
-     * Constructor: creates a configuration for a simulation
-     *
-     * @param populationSize total number of people
-     * @param infectionRate probability of infection per contact
-     * @param incubationPeriod days before infection is active
-     * @param vaccinationEnabled whether vaccination is applied
-     * @param vaccinationEfficacy probability that vaccine works
-     * @param maxDays maximum number of simulation days
-     * @param minRecoveryDays minimum days until recovery
-     * @param maxRecoveryDays maximum days until recovery
-     * @param minContagiousDays minimum days post-recovery still contagious
-     * @param maxContagiousDays maximum days post-recovery still contagious
+     * Constructs a SimulationConfig with default model objects
+     * Sets default values for maxDays and vaccinationEnabled
      */
-    public SimulationConfig(int populationSize, float infectionRate, int incubationPeriod,
-                            boolean vaccinationEnabled, float vaccinationEfficacy, int maxDays,
-                            int minRecoveryDays, int maxRecoveryDays,
-                            int minContagiousDays, int maxContagiousDays)
+    public SimulationConfig()
     {
-        this.populationSize = populationSize;
-        this.infectionRate = infectionRate;
-        this.incubationPeriod = incubationPeriod;
-        this.vaccinationEnabled = vaccinationEnabled;
-        this.vaccinationEfficacy = vaccinationEfficacy;
-        this.maxDays = maxDays;
-        this.minRecoveryDays = minRecoveryDays;
-        this.maxRecoveryDays = maxRecoveryDays;
-        this.minContagiousDays = minContagiousDays;
-        this.maxContagiousDays = maxContagiousDays;
+        this.population = new Population();
+        this.disease = new Disease();
+        this.vaccination = new Vaccination();
+
+        vaccinationEnabled = false;
+        this.maxDays = 50;
+    }
+
+    /**
+     * Retrieves the Population object
+     * 
+     * @return the simulation population
+     */
+    public Population getPopulation()
+    {
+        return population;
+    }
+
+    /**
+     * Retrieves the Disease object
+     * 
+     * @return the simulation disease
+     */
+    public Disease getDisease()
+    {
+        return disease;
+    }
+
+    /**
+     * Retrieves the Vaccination object
+     * 
+     * @return the simulation vaccination configuration
+     */
+    public Vaccination getVaccination()
+    {
+        return vaccination;
     }
 }

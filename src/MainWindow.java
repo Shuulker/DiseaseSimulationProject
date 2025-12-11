@@ -4,22 +4,31 @@ import java.awt.*;
 /**
  * Lead Author(s):
  * @author Joseph Roberts
- *
+ * 
+ * References:
+ * Morelli, R., & Walde, R. (2016). Java, Java, Java: Object-Oriented Problem Solving.
+ * Retrieved from https://open.umn.edu/opentextbooks/textbooks/java-java-java-object-oriented-problem-solving
+ * 
+ * Version/date: 11/21/2025
+ * 
  * Responsibilities of class:
- * Main application window. Shows setup screen first, builds controller and
- * main simulation UI after user configures settings.
+ * Represents the main window of the simulation application.
+ * Handles switching between setup and simulation screens.
+ * Manages Controller, SimulationPanel, ControlPanel, and SimulationConfig objects.
  */
 
 // MainWindow IS-A JFrame
-// MainWindow has-a Controller, SimulationPanel, and ControlPanel
+// MainWindow HAS-A Controller, SimulationPanel, ControlPanel, SimulationConfig
 public class MainWindow extends JFrame
 {
-    private Controller controller;
-    private SimulationPanel simulationPanel;
-    private ControlPanel controlPanel;
+    private Controller controller;                 // simulation controller
+    private SimulationPanel simulationPanel;       // panel that renders the population and disease
+    private ControlPanel controlPanel;             // panel with simulation controls
+    private SimulationConfig currentConfig;        // current simulation configuration
 
     /**
-     * Constructor: initializes the main window and displays the setup screen.
+     * Default constructor
+     * Sets up window size, title, layout, and shows setup screen
      */
     public MainWindow()
     {
@@ -35,32 +44,42 @@ public class MainWindow extends JFrame
     }
 
     /**
-     * Displays the initial setup screen where the user configures simulation parameters.
+     * Displays the simulation setup screen
+     * Allows user to configure simulation parameters
      */
     private void showSetupScreen()
     {
-        SimulationSetupPanel setupPanel = new SimulationSetupPanel(config -> 
+        // if currentConfig is null (first time), create a default
+        if (currentConfig == null)
         {
-            // 1️ Create controller and apply configuration
+            currentConfig = new SimulationConfig();
+        }
+
+        // create the setup panel with callback for when setup is complete
+        SimulationSetupPanel setupPanel = new SimulationSetupPanel(config ->
+        {
+            // save the config so it can be reused when returning
+            currentConfig = config;
+
             controller = new Controller();
             controller.applyConfig(config);
 
-            // 2️ Create SimulationPanel with both population & disease
             simulationPanel = new SimulationPanel(controller.getPopulation(), controller.getDisease());
-
-            // Enable interactive setup BEFORE starting simulation
             simulationPanel.setInteractiveSetup(true);
 
-            // 3️ Create ControlPanel (start/reset buttons)
-            controlPanel = new ControlPanel(simulationPanel, controller);
+            // create the control panel with callback to return to setup
+            controlPanel = new ControlPanel(simulationPanel, controller, cpConfig ->
+            {
+                currentConfig = cpConfig;
+                showSetupScreen();
+            });
 
-            // 4️ Replace setup screen with simulation UI
             getContentPane().removeAll();
             add(simulationPanel, BorderLayout.CENTER);
             add(controlPanel, BorderLayout.EAST);
             revalidate();
             repaint();
-        });
+        }, currentConfig); // pass the existing config
 
         getContentPane().removeAll();
         add(setupPanel, BorderLayout.CENTER);
@@ -69,9 +88,10 @@ public class MainWindow extends JFrame
     }
 
     /**
-     * Main entry point for the simulation application.
-     *
-     * @param args command-line arguments (unused)
+     * Application entry point
+     * Launches the GUI on the Event Dispatch Thread
+     * 
+     * @param args command line arguments (unused)
      */
     public static void main(String[] args)
     {

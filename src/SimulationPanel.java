@@ -7,35 +7,44 @@ import java.util.List;
 /**
  * Lead Author(s):
  * @author Joseph Roberts
- *
+ * 
+ * References:
+ * Morelli, R., & Walde, R. (2016). Java, Java, Java: Object-Oriented Problem Solving.
+ * Retrieved from https://open.umn.edu/opentextbooks/textbooks/java-java-java-object-oriented-problem-solving
+ * 
+ * Version/date: 11/21/2025
+ * 
  * Responsibilities of class:
- * Displays the population grid, coloring each person according to their health status.
- * Supports interactive setup by allowing pre-infection of individuals via mouse clicks.
+ * Represents the visual simulation grid.
+ * Draws people colored by health status and allows interactive infection during setup.
  */
 
-// SimulationPanel has-a Population and Disease
+// SimulationPanel IS-A JPanel
+// SimulationPanel HAS-A Population, Disease, interactiveSetup flag
 public class SimulationPanel extends JPanel
 {
-    private Population population;
-    private Disease disease;
-    private boolean interactiveSetup = false; // allow clicking to pre-infect
+    private Population population;         // simulation population
+    private Disease disease;               // simulation disease
+    private boolean interactiveSetup;      // whether users can click to infect people
 
     /**
-     * Constructor: creates a SimulationPanel
-     *
-     * @param population the population to display
-     * @param disease the disease to simulate
+     * Constructs a SimulationPanel with the given Population and Disease
+     * 
+     * @param population simulation population
+     * @param disease simulation disease
      */
     public SimulationPanel(Population population, Disease disease)
     {
-        setBackground(Color.WHITE);
         this.population = population;
         this.disease = disease;
+        this.interactiveSetup = false;
 
-        addMouseListener(new MouseAdapter()
+        setBackground(Color.WHITE);
+
+        addMouseListener(new java.awt.event.MouseAdapter()
         {
             @Override
-            public void mouseClicked(MouseEvent e)
+            public void mouseClicked(java.awt.event.MouseEvent e)
             {
                 handleMouseClick(e);
             }
@@ -43,35 +52,10 @@ public class SimulationPanel extends JPanel
     }
 
     /**
-     * Handles mouse click for interactive infection setup.
-     *
-     * @param e mouse event
-     */
-    private void handleMouseClick(MouseEvent e)
-    {
-        if (!interactiveSetup || population == null || disease == null) return;
-
-        int col = e.getX() / getCellWidth();
-        int row = e.getY() / getCellHeight();
-        int index = row * population.getColumnCount() + col;
-
-        List<Person> people = population.getPeople();
-        if (index >= 0 && index < people.size())
-        {
-            Person p = people.get(index);
-            if (p.getHealthStatus() == HealthStatus.SUSCEPTIBLE)
-            {
-                p.infect(disease);
-                repaint();
-            }
-        }
-    }
-
-    /**
-     * Update the population and disease references.
-     *
-     * @param population new population
-     * @param disease new disease
+     * Updates the population and disease used by the panel and repaints
+     * 
+     * @param population simulation population
+     * @param disease simulation disease
      */
     public void setPopulationAndDisease(Population population, Disease disease)
     {
@@ -81,9 +65,9 @@ public class SimulationPanel extends JPanel
     }
 
     /**
-     * Enable or disable interactive infection setup.
-     *
-     * @param interactive true to allow clicking to infect
+     * Sets whether the panel is in interactive setup mode
+     * 
+     * @param interactive true to enable interactive infection
      */
     public void setInteractiveSetup(boolean interactive)
     {
@@ -91,20 +75,61 @@ public class SimulationPanel extends JPanel
     }
 
     /**
-     * Paint the population grid.
-     *
-     * @param g graphics context
+     * Handles mouse clicks for infecting a person during interactive setup
+     * 
+     * @param e mouse event
+     */
+    private void handleMouseClick(java.awt.event.MouseEvent e)
+    {
+        if (!interactiveSetup || population == null || disease == null)
+        {
+            return;
+        }
+
+        int cols = population.getColumnCount();
+        int rows = population.getRowCount();
+
+        int col = e.getX() / Math.max(1, getCellWidth());
+        int row = e.getY() / Math.max(1, getCellHeight());
+
+        int index = row * cols + col;
+
+        List<Person> people = population.getPeople();
+
+        if (index >= 0 && index < people.size())
+        {
+            Person p = people.get(index);
+
+            if (p.getHealthStatus() == HealthStatus.SUSCEPTIBLE)
+            {
+                p.infect(disease);
+                repaint();
+            }
+        }
+    }
+
+    /**
+     * Paints the simulation grid of people colored by health status
+     * 
+     * @param g Graphics object
      */
     @Override
     protected void paintComponent(Graphics g)
     {
         super.paintComponent(g);
 
-        if (population == null) return;
+        if (population == null)
+        {
+            return;
+        }
 
         List<Person> people = population.getPeople();
         int total = people.size();
-        if (total == 0) return;
+
+        if (total == 0)
+        {
+            return;
+        }
 
         int cols = population.getColumnCount();
         int rows = population.getRowCount();
@@ -119,48 +144,56 @@ public class SimulationPanel extends JPanel
             int x = col * cellW;
             int y = row * cellH;
 
-            g.setColor(getColorForHealthStatus(p.getHealthStatus()));
+            g.setColor(colorFor(p.getHealthStatus()));
             g.fillRect(x, y, cellW, cellH);
         }
     }
 
     /**
-     * Returns a color corresponding to a health status.
-     *
-     * @param status health status
-     * @return color to draw
-     */
-    private Color getColorForHealthStatus(HealthStatus status)
-    {
-        switch (status)
-        {
-            case SUSCEPTIBLE: return Color.GREEN;
-            case INFECTED: return Color.RED;
-            case RECOVERING: return Color.ORANGE;
-            case RECOVERED: return new Color(0, 100, 0); // DARK GREEN
-            case VACCINATED: return new Color(0, 150, 255); // LIGHT BLUE
-            case DEAD: return Color.DARK_GRAY;
-            default: return Color.BLACK;
-        }
-    }
-
-    /**
-     * Computes width of a single cell in the grid.
-     *
-     * @return cell width
+     * Computes the width of each grid cell
+     * 
+     * @return cell width in pixels
      */
     private int getCellWidth()
     {
-        return population == null ? 0 : getWidth() / population.getColumnCount();
+        return population == null ? 1 : Math.max(1, getWidth() / population.getColumnCount());
     }
 
     /**
-     * Computes height of a single cell in the grid.
-     *
-     * @return cell height
+     * Computes the height of each grid cell
+     * 
+     * @return cell height in pixels
      */
     private int getCellHeight()
     {
-        return population == null ? 0 : getHeight() / population.getRowCount();
+        return population == null ? 1 : Math.max(1, getHeight() / population.getRowCount());
+    }
+
+    /**
+     * Returns a color representing the given health status
+     * 
+     * @param s health status
+     * @return color to use in rendering
+     */
+    private Color colorFor(HealthStatus s)
+    {
+        switch (s)
+        {
+            case SUSCEPTIBLE:
+                return Color.GREEN;
+            case INFECTED:
+                return Color.RED;
+            case CONTAGIOUS:
+                return Color.ORANGE;
+            case RECOVERED:
+                return new Color(0, 100, 0); // DARK GREEN
+            case VACCINATED:
+                return new Color(0, 150, 255); // LIGHT BLUE
+            case DEAD:
+                return Color.DARK_GRAY;
+            default:
+                return Color.BLACK;
+        }
     }
 }
+
