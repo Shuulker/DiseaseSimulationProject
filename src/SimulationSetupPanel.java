@@ -60,7 +60,6 @@ public class SimulationSetupPanel extends JPanel
         setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
 
         Population popModel = config.getPopulation();
-        Disease diseaseModel = config.getDisease();
         Vaccination vacc = config.getVaccination();
 
         // Population
@@ -144,7 +143,8 @@ public class SimulationSetupPanel extends JPanel
         dailyVaccMinField.setEnabled(config.vaccinationEnabled);
         dailyVaccMaxField.setEnabled(config.vaccinationEnabled);
 
-        enableVaccinationCheckbox.addActionListener(e -> {
+        enableVaccinationCheckbox.addActionListener(e ->
+        {
             boolean enabled = enableVaccinationCheckbox.isSelected();
             vaccinationStartDayField.setEnabled(enabled);
             dailyVaccMinField.setEnabled(enabled);
@@ -254,6 +254,7 @@ public class SimulationSetupPanel extends JPanel
         }
 
         boolean vaccEnabled = enableVaccinationCheckbox.isSelected();
+        config.vaccinationEnabled = vaccEnabled;
         int vaccStart = 0;
         float dailyVaccMin = 0f;
         float dailyVaccMax = 0f;
