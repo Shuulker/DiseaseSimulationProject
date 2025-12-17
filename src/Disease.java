@@ -1,5 +1,5 @@
 import java.util.List;
-
+import java.io.Serializable;
 /**
  * Lead Author(s):
  * @author Joseph Roberts
@@ -18,8 +18,10 @@ import java.util.List;
 
 // Disease HAS-A name, infection rate, mortality rate, recovery and contagious day ranges
 // Disease IS-A model entity
-public class Disease
+public class Disease implements Serializable 
 {
+
+	private static final long serialVersionUID = 1L;
     private String name;                   // name of the disease
     private double infectionRate;          // chance per day to infect a susceptible person (0..1)
     private double mortalityRate;          // chance per day for infected to die (0..1)
@@ -34,7 +36,7 @@ public class Disease
      */
     public Disease()
     {
-        this("New Disease", 0.2, 0.0, 3, 5, 2, 5); // default values set here
+        this("Default", 0.2, 0.0, 3, 5, 2, 5); // default values set here
     }
 
     /**
@@ -60,6 +62,21 @@ public class Disease
         this.minContagiousDays = minContagious;
         this.maxContagiousDays = maxContagious;
     }
+    
+    public Disease copy()
+    {
+        return new Disease
+        (
+            this.name,
+            this.infectionRate,
+            this.mortalityRate,
+            this.minRecoveryDays,
+            this.maxRecoveryDays,
+            this.minContagiousDays,
+            this.maxContagiousDays
+        );
+    }
+
 
     /**
      * Retrieves the name of the disease

@@ -35,7 +35,7 @@ public class SimulationConfig
         this.vaccination = new Vaccination();
 
         vaccinationEnabled = false;
-        this.maxDays = 50;
+        this.maxDays = 100;
     }
 
     /**
@@ -57,6 +57,15 @@ public class SimulationConfig
     {
         return disease;
     }
+    
+    public void setDisease(Disease disease)
+    {
+        if (disease != null)
+        {
+            this.disease = disease;
+        }
+    }
+
 
     /**
      * Retrieves the Vaccination object

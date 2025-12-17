@@ -25,6 +25,7 @@ public class MainWindow extends JFrame
     private SimulationPanel simulationPanel;       // panel that renders the population and disease
     private ControlPanel controlPanel;             // panel with simulation controls
     private SimulationConfig currentConfig;        // current simulation configuration
+    private final PresetManager presetManager;
 
     /**
      * Default constructor
@@ -37,6 +38,7 @@ public class MainWindow extends JFrame
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
         setLayout(new BorderLayout());
+        presetManager = new PresetManager(); 
 
         showSetupScreen();
 
@@ -79,7 +81,7 @@ public class MainWindow extends JFrame
             add(controlPanel, BorderLayout.EAST);
             revalidate();
             repaint();
-        }, currentConfig); // pass the existing config
+        }, currentConfig, presetManager); // pass the existing config
 
         getContentPane().removeAll();
         add(setupPanel, BorderLayout.CENTER);
