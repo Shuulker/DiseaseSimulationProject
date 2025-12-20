@@ -146,7 +146,12 @@ public class SimulationPanel extends JPanel
 
             g.setColor(colorFor(p.getHealthStatus()));
             g.fillRect(x, y, cellW, cellH);
-        }
+        }  
+        g.setColor(Color.BLACK);
+        g.setFont(new Font("SansSerif", Font.BOLD, 14));
+        int gridHeight = population.getRowCount() * getCellHeight();
+        int textY = gridHeight + 20;   // space below the grid
+        g.drawString("Click anywhere on the green to add infected", 10, textY);
     }
 
     /**
